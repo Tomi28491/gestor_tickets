@@ -1,0 +1,44 @@
+{% extends "tickets/base.html" %}
+
+{% block title %}Registro{% endblock %}
+
+{% block content %}
+    <section class="auth-card panel">
+        <h1>Crear cuenta</h1>
+        <p>Este registro crea usuarios con rol de usuario final para cargar y seguir tickets.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div>
+                <label for="{{ form.username.id_for_label }}">Usuario</label>
+                {{ form.username }}
+                {{ form.username.errors }}
+            </div>
+            <div>
+                <label for="{{ form.first_name.id_for_label }}">Nombre</label>
+                {{ form.first_name }}
+                {{ form.first_name.errors }}
+            </div>
+            <div>
+                <label for="{{ form.last_name.id_for_label }}">Apellido</label>
+                {{ form.last_name }}
+                {{ form.last_name.errors }}
+            </div>
+            <div>
+                <label for="{{ form.email.id_for_label }}">Correo electronico</label>
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+            <div>
+                <label for="{{ form.password1.id_for_label }}">Contrasena</label>
+                {{ form.password1 }}
+                {{ form.password1.errors }}
+            </div>
+            <div>
+                <label for="{{ form.password2.id_for_label }}">Confirmar contrasena</label>
+                {{ form.password2 }}
+                {{ form.password2.errors }}
+            </div>
+            <button type="submit">Crear cuenta</button>
+        </form>
+    </section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "tickets/base.html" %}
+
+{% block title %}{{ articulo.titulo }}{% endblock %}
+
+{% block content %}
+    <section class="panel">
+        <a class="nav-link" href="{% url 'tickets:base_conocimiento' %}">Volver a la base</a>
+        <h1>{{ articulo.titulo }}</h1>
+        <p class="muted">{{ articulo.resumen }}</p>
+        <div>{{ articulo.contenido|linebreaksbr }}</div>
+    </section>
+{% endblock %}

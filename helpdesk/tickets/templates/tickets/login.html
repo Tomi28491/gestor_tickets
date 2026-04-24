@@ -1,0 +1,26 @@
+{% extends "tickets/base.html" %}
+
+{% block title %}Iniciar sesion{% endblock %}
+
+{% block content %}
+    <section class="auth-card panel">
+        <h1>Iniciar sesion</h1>
+        <p>Accede para crear tickets o administrarlos desde el perfil de sistemas.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div>
+                <label for="{{ form.username.id_for_label }}">Usuario</label>
+                {{ form.username }}
+                {{ form.username.errors }}
+            </div>
+            <div>
+                <label for="{{ form.password.id_for_label }}">Contrasena</label>
+                {{ form.password }}
+                {{ form.password.errors }}
+            </div>
+            {{ form.non_field_errors }}
+            <button type="submit">Entrar</button>
+        </form>
+        <p>Si aun no tienes cuenta, <a href="{% url 'tickets:registro' %}">registrate aqui</a>.</p>
+    </section>
+{% endblock %}

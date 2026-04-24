@@ -1,0 +1,337 @@
+{% extends "tickets/base.html" %}
+
+{% block title %}Ticket {{ ticket.asunto }}{% endblock %}
+
+{% block content %}
+    <style>
+        .detail-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) 360px;
+            gap: 1rem;
+        }
+
+        .stack,
+        .side-stack,
+        .timeline {
+            display: grid;
+            gap: 1rem;
+            align-content: start;
+        }
+
+        .header-row,
+        .ticket-badges {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: start;
+        }
+
+        .ticket-badges {
+            justify-content: start;
+        }
+
+        .badge {
+            display: inline-flex;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: bold;
+            background: #000000;
+        }
+
+        .timeline-item {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgb(0, 0, 0);
+        }
+
+        .timeline-item.internal {
+            background: #000000;
+        }
+
+        .meta {
+            color: var(--muted);
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .attachments {
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .attachment {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            background: white;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .history-item {
+            padding: 0.9rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: rgb(0, 0, 0);
+        }
+
+        .status-flow {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+
+        .status-node {
+            padding: 0.65rem 0.75rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: #090909;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .status-node.completado {
+            background: #052e16;
+            border-color: #14532d;
+            color: #86efac;
+        }
+
+        .status-node.actual {
+            background: #172554;
+            border-color: #1d4ed8;
+            color: #bfdbfe;
+        }
+
+        .sla-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 0.85rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: #090909;
+            font-weight: bold;
+        }
+
+        .sla-dot {
+            width: 0.7rem;
+            height: 0.7rem;
+            border-radius: 999px;
+            display: inline-block;
+        }
+
+        .sla-en_tiempo .sla-dot,
+        .sla-cumplido .sla-dot {
+            background: #22c55e;
+        }
+
+        .sla-riesgo .sla-dot {
+            background: #facc15;
+        }
+
+        .sla-vencido .sla-dot {
+            background: #ef4444;
+        }
+
+        .sla-sin_objetivo .sla-dot {
+            background: #6b7280;
+        }
+
+        @media (max-width: 960px) {
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <div class="actions" style="margin-bottom: 1rem;">
+        <a class="nav-link" href="{% url 'tickets:index' %}">Volver al panel</a>
+        <a class="nav-link" href="{% url 'tickets:base_conocimiento' %}">Ver base de conocimiento</a>
+    </div>
+
+    <section class="detail-grid">
+        <div class="stack">
+            <article class="panel">
+                <div class="header-row">
+                    <div>
+                        <h1>{{ ticket.asunto }}</h1>
+                        <p class="meta">Reportado por {{ ticket.usuario }} el {{ ticket.creado_en|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div class="ticket-badges">
+                        <span class="badge">{{ ticket.get_estado_display }}</span>
+                        <span class="badge">{{ ticket.get_prioridad_display }}</span>
+                        <span class="badge">{{ ticket.get_categoria_display }}</span>
+                        <span class="sla-box sla-{{ ticket.sla_estado }}"><span class="sla-dot"></span>{{ ticket.sla_texto }}</span>
+                    </div>
+                </div>
+                <p>{{ ticket.descripcion|linebreaksbr }}</p>
+                <p class="meta">
+                    {% if ticket.asignado_a %}Asignado a {{ ticket.asignado_a.username }}{% else %}Sin tecnico asignado{% endif %}
+                    {% if ticket.vencimiento %} | Objetivo {{ ticket.vencimiento|date:"d/m/Y H:i" }}{% endif %}
+                    {% if ticket.esta_vencido %} | Vencido{% endif %}
+                </p>
+                <div class="status-flow">
+                    {% for paso in ticket.timeline %}
+                        <div class="status-node {{ paso.estado }}">{{ paso.etiqueta }}</div>
+                    {% endfor %}
+                </div>
+                {% if not es_sistemas %}
+                    <div class="actions">
+                        {% if ticket.estado != "cerrado" %}
+                            <form method="post" action="{% url 'tickets:cerrar' ticket.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Cerrar ticket</button>
+                            </form>
+                        {% endif %}
+                        {% if ticket.estado == "cerrado" or ticket.estado == "resuelto" %}
+                            <form method="post" action="{% url 'tickets:reabrir' ticket.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Reabrir ticket</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </article>
+
+            <article class="panel">
+                <h2>Conversacion</h2>
+                <div class="timeline">
+                    {% for mensaje in mensajes_ticket %}
+                        <article class="timeline-item {% if mensaje.es_interno %}internal{% endif %}">
+                            <strong>
+                                {{ mensaje.autor.username }}
+                                {% if mensaje.es_interno %}(interno){% endif %}
+                            </strong>
+                            <p>{{ mensaje.contenido|linebreaksbr }}</p>
+                            <p class="meta">{{ mensaje.creado_en|date:"d/m/Y H:i" }}</p>
+                        </article>
+                    {% empty %}
+                        <div class="history-item">Todavia no hay mensajes en este ticket.</div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="panel">
+                <h2>Responder</h2>
+                <form method="post" action="{% url 'tickets:agregar_mensaje' ticket.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="publico">
+                    <div>
+                        <label for="{{ mensaje_form.contenido.id_for_label }}">Mensaje publico</label>
+                        {{ mensaje_form.contenido }}
+                        {{ mensaje_form.contenido.errors }}
+                    </div>
+                    <button class="primary" type="submit">Enviar mensaje</button>
+                </form>
+                {% if es_sistemas %}
+                    <form method="post" action="{% url 'tickets:agregar_mensaje' ticket.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo" value="interno">
+                        <div>
+                            <label for="{{ comentario_form.contenido.id_for_label }}">Comentario interno</label>
+                            {{ comentario_form.contenido }}
+                            {{ comentario_form.contenido.errors }}
+                        </div>
+                        <button type="submit">Guardar comentario interno</button>
+                    </form>
+                {% endif %}
+            </article>
+        </div>
+
+        <aside class="side-stack">
+            {% if es_sistemas %}
+                <article class="panel">
+                    <h2>Gestion</h2>
+                    <p class="meta">Desde este bloque puedes guardar cambios de estado, prioridad, categoria y tecnico asignado.</p>
+                    <form method="post" action="{% url 'tickets:gestionar' ticket.id %}">
+                        {% csrf_token %}
+                        {{ gestion_form.non_field_errors }}
+                        <div>
+                            <label for="{{ gestion_form.estado.id_for_label }}">Estado</label>
+                            {{ gestion_form.estado }}
+                            {{ gestion_form.estado.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ gestion_form.prioridad.id_for_label }}">Prioridad</label>
+                            {{ gestion_form.prioridad }}
+                            {{ gestion_form.prioridad.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ gestion_form.categoria.id_for_label }}">Categoria</label>
+                            {{ gestion_form.categoria }}
+                            {{ gestion_form.categoria.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ gestion_form.asignado_a.id_for_label }}">Asignado a</label>
+                            {{ gestion_form.asignado_a }}
+                            {{ gestion_form.asignado_a.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ gestion_form.vencimiento.id_for_label }}">Fecha objetivo</label>
+                            {{ gestion_form.vencimiento }}
+                            {{ gestion_form.vencimiento.errors }}
+                        </div>
+                        <button class="primary" type="submit">Guardar gestion</button>
+                    </form>
+                </article>
+            {% endif %}
+
+            <article class="panel">
+                <h2>Adjuntos</h2>
+                <div class="attachments">
+                    {% for adjunto in adjuntos %}
+                        <div class="attachment">
+                            <div>
+                                <strong>{{ adjunto.archivo.name|cut:"tickets/adjuntos/" }}</strong>
+                                <p class="meta">Subido por {{ adjunto.subido_por.username }} el {{ adjunto.creado_en|date:"d/m/Y H:i" }}</p>
+                            </div>
+                            <a class="nav-link" href="{{ adjunto.archivo.url }}">Descargar</a>
+                        </div>
+                    {% empty %}
+                        <div class="history-item">No hay archivos adjuntos.</div>
+                    {% endfor %}
+                </div>
+                <form method="post" enctype="multipart/form-data" action="{% url 'tickets:adjuntar_archivo' ticket.id %}">
+                    {% csrf_token %}
+                    <div>
+                        <label for="{{ adjunto_form.archivo.id_for_label }}">Nuevo archivo</label>
+                        {{ adjunto_form.archivo }}
+                        {{ adjunto_form.archivo.errors }}
+                    </div>
+                    <button type="submit">Adjuntar archivo</button>
+                </form>
+            </article>
+
+            <article class="panel">
+                <h2>Historial</h2>
+                <div class="history-list">
+                    {% for item in historial %}
+                        <div class="history-item">
+                            <strong>{{ item.descripcion }}</strong>
+                            <p class="meta">
+                                {% if item.actor %}{{ item.actor.username }} | {% endif %}
+                                {{ item.creado_en|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                    {% empty %}
+                        <div class="history-item">Sin movimientos registrados.</div>
+                    {% endfor %}
+                </div>
+            </article>
+        </aside>
+    </section>
+{% endblock %}

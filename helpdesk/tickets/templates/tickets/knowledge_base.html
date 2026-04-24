@@ -1,0 +1,48 @@
+{% extends "tickets/base.html" %}
+
+{% block title %}Base de conocimiento{% endblock %}
+
+{% block content %}
+    <style>
+        .kb-header,
+        .kb-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .kb-list article {
+            padding: 1rem 1.1rem;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        .meta {
+            color: var(--muted);
+        }
+    </style>
+
+    <section class="panel kb-header">
+        <h1>Base de conocimiento</h1>
+        <p class="meta">Consulta soluciones frecuentes para reducir tiempos de respuesta y resolver problemas repetidos.</p>
+        <form method="get">
+            <div>
+                <label for="id_q">Buscar articulo</label>
+                <input id="id_q" type="text" name="q" value="{{ query }}" placeholder="Busca por titulo o contenido">
+            </div>
+            <button class="primary" type="submit">Buscar</button>
+        </form>
+    </section>
+
+    <section class="kb-list">
+        {% for articulo in articulos %}
+            <article>
+                <h2>{{ articulo.titulo }}</h2>
+                <p>{{ articulo.resumen }}</p>
+                <a class="nav-link" href="{% url 'tickets:articulo_detalle' articulo.slug %}">Leer articulo</a>
+            </article>
+        {% empty %}
+            <article>No se encontraron articulos para la busqueda actual.</article>
+        {% endfor %}
+    </section>
+{% endblock %}
