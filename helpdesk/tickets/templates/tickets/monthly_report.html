@@ -1,0 +1,235 @@
+{% extends "tickets/base.html" %}
+
+{% block title %}Reporte mensual{% endblock %}
+
+{% block content %}
+    <style>
+        .report-stack,
+        .summary-grid,
+        .table-wrap {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: end;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .summary-card {
+            padding: 1rem;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+        }
+
+        .summary-card span {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .summary-card strong {
+            font-size: 1.8rem;
+        }
+
+        .inline-form,
+        .actions-row {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .inline-form > div {
+            min-width: 220px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 980px;
+            background: color-mix(in srgb, var(--surface) 92%, transparent);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 0.9rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 0.86rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            color: var(--chip-ink);
+            font-weight: bold;
+            font-size: 0.82rem;
+        }
+
+        .mini-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .mini-item {
+            padding: 0.9rem 1rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+        }
+
+        .muted-line {
+            color: var(--muted);
+        }
+
+        @media (max-width: 1100px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <section class="report-stack">
+        <article class="panel">
+            <div class="report-header">
+                <div>
+                    <h1>Reporte mensual</h1>
+                    <p class="muted-line">Periodo: {{ periodo_inicio|date:"F Y" }}. Incluye actividad de resolucion y cierre.</p>
+                </div>
+                <div class="actions-row">
+                    <form class="inline-form" method="get">
+                        <div>
+                            <label for="month">Mes</label>
+                            <input id="month" type="month" name="month" value="{{ month_value }}">
+                        </div>
+                        <button class="primary" type="submit">Generar reporte</button>
+                    </form>
+                    <a class="nav-link" href="?month={{ month_value }}&format=csv">Descargar CSV</a>
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Tickets creados</span>
+                    <strong>{{ resumen.creados }}</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Tickets resueltos</span>
+                    <strong>{{ resumen.resueltos }}</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Tickets cerrados</span>
+                    <strong>{{ resumen.cerrados }}</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Cerrados por usuario</span>
+                    <strong>{{ resumen.cerrados_por_usuario }}</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Cerrados por sistemas</span>
+                    <strong>{{ resumen.cerrados_por_sistemas }}</strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="panel">
+            <h2>Ultimos tickets resueltos del mes</h2>
+            <div class="mini-list">
+                {% for ticket in tickets_resueltos %}
+                    <div class="mini-item">
+                        <strong>#{{ ticket.id }} {{ ticket.asunto }}</strong>
+                        <p class="muted-line">
+                            Resuelto por {{ ticket.resuelto_por.username|default:"Sin dato" }}
+                            {% if ticket.resuelto_en %} el {{ ticket.resuelto_en|date:"d/m/Y H:i" }}{% endif %}
+                            {% if ticket.asignado_a %} | Asignado a {{ ticket.asignado_a.username }}{% endif %}
+                        </p>
+                    </div>
+                {% empty %}
+                    <div class="mini-item">No hubo tickets resueltos en este mes.</div>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="panel">
+            <h2>Tickets cerrados</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Estado</th>
+                            <th>Categoria</th>
+                            <th>Asignado</th>
+                            <th>Resuelto por</th>
+                            <th>Resuelto en</th>
+                            <th>Cerrado por</th>
+                            <th>Cierre</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets_cerrados %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ ticket.id }} {{ ticket.asunto }}</strong><br>
+                                    <span class="muted-line">{{ ticket.usuario }}</span>
+                                </td>
+                                <td><span class="badge">{{ ticket.get_estado_display }}</span></td>
+                                <td>{{ ticket.get_categoria_display }}<br><span class="muted-line">{{ ticket.get_prioridad_display }}</span></td>
+                                <td>{{ ticket.asignado_a.username|default:"Sin asignar" }}</td>
+                                <td>{{ ticket.resuelto_por.username|default:"Sin dato" }}</td>
+                                <td>{% if ticket.resuelto_en %}{{ ticket.resuelto_en|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
+                                <td>
+                                    {{ ticket.cerrado_por.username|default:"Sin dato" }}
+                                    {% if ticket.cerrado_por_usuario %}
+                                        <br><span class="muted-line">Cierre por usuario final</span>
+                                    {% else %}
+                                        <br><span class="muted-line">Cierre por sistemas</span>
+                                    {% endif %}
+                                </td>
+                                <td>{% if ticket.cerrado_en %}{{ ticket.cerrado_en|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8">No hubo tickets cerrados en este mes.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+{% endblock %}

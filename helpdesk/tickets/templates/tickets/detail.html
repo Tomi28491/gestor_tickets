@@ -12,14 +12,52 @@
 
         .stack,
         .side-stack,
-        .timeline {
+        .timeline,
+        .summary-grid,
+        .legend {
             display: grid;
             gap: 1rem;
             align-content: start;
         }
 
+        .summary-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .summary-card {
+            padding: 0.95rem 1rem;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: color-mix(in srgb, var(--surface) 82%, transparent);
+        }
+
+        .summary-card strong,
+        .message-head strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .eyebrow,
+        .meta {
+            color: var(--muted);
+        }
+
+        .eyebrow {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .summary-value {
+            font-size: 1.05rem;
+            font-weight: bold;
+        }
+
         .header-row,
-        .ticket-badges {
+        .ticket-badges,
+        .message-head,
+        .attachment-head {
             display: flex;
             justify-content: space-between;
             gap: 1rem;
@@ -33,26 +71,73 @@
 
         .badge {
             display: inline-flex;
+            align-items: center;
             padding: 0.35rem 0.75rem;
             border-radius: 999px;
             font-size: 0.88rem;
             font-weight: bold;
-            background: #000000;
+            background: var(--chip-bg);
+            color: var(--chip-ink);
+            border: 1px solid var(--chip-bg);
+        }
+
+        .description-box,
+        .timeline-item,
+        .history-item,
+        .attachment {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: color-mix(in srgb, var(--surface) 86%, transparent);
+        }
+
+        .description-box,
+        .timeline-item {
+            padding: 1rem;
         }
 
         .timeline-item {
-            padding: 1rem;
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            background: rgb(0, 0, 0);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            background: var(--accent);
+        }
+
+        .timeline-item.internal::before {
+            background: var(--deep);
         }
 
         .timeline-item.internal {
-            background: #000000;
+            background: color-mix(in srgb, var(--deep) 16%, var(--surface));
         }
 
-        .meta {
-            color: var(--muted);
+        .message-type {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.78rem;
+            font-weight: bold;
+            border: 1px solid var(--border);
+            background: color-mix(in srgb, var(--surface) 90%, transparent);
+        }
+
+        .message-type.internal {
+            background: color-mix(in srgb, var(--deep) 18%, var(--surface));
+            border-color: color-mix(in srgb, var(--deep) 35%, var(--border));
+        }
+
+        .message-content {
+            margin: 0.8rem 0;
+        }
+
+        .message-time {
+            font-size: 0.9rem;
         }
 
         .actions {
@@ -61,31 +146,26 @@
             flex-wrap: wrap;
         }
 
-        .attachments {
-            display: grid;
-            gap: 0.7rem;
-        }
-
-        .attachment {
-            display: flex;
-            justify-content: space-between;
-            gap: 1rem;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 0.85rem 1rem;
-            background: white;
-        }
-
+        .attachments,
         .history-list {
             display: grid;
             gap: 0.7rem;
         }
 
+        .attachment,
         .history-item {
             padding: 0.9rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            background: rgb(0, 0, 0);
+        }
+
+        .file-pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.25rem 0.55rem;
+            font-size: 0.78rem;
+            background: var(--accent-soft);
+            color: var(--accent-dark);
+            font-weight: bold;
         }
 
         .status-flow {
@@ -96,24 +176,24 @@
         }
 
         .status-node {
-            padding: 0.65rem 0.75rem;
+            padding: 0.75rem;
             border-radius: 16px;
             border: 1px solid var(--border);
-            background: #090909;
+            background: color-mix(in srgb, var(--surface) 84%, transparent);
             text-align: center;
             color: var(--muted);
         }
 
         .status-node.completado {
-            background: #052e16;
-            border-color: #14532d;
-            color: #86efac;
+            background: color-mix(in srgb, var(--ok) 18%, var(--surface));
+            border-color: color-mix(in srgb, var(--ok) 35%, var(--border));
+            color: var(--ok);
         }
 
         .status-node.actual {
-            background: #172554;
-            border-color: #1d4ed8;
-            color: #bfdbfe;
+            background: color-mix(in srgb, var(--info) 16%, var(--surface));
+            border-color: color-mix(in srgb, var(--info) 35%, var(--border));
+            color: var(--info);
         }
 
         .sla-box {
@@ -123,7 +203,7 @@
             padding: 0.55rem 0.85rem;
             border-radius: 999px;
             border: 1px solid var(--border);
-            background: #090909;
+            background: color-mix(in srgb, var(--surface) 86%, transparent);
             font-weight: bold;
         }
 
@@ -136,7 +216,7 @@
 
         .sla-en_tiempo .sla-dot,
         .sla-cumplido .sla-dot {
-            background: #22c55e;
+            background: var(--ok);
         }
 
         .sla-riesgo .sla-dot {
@@ -151,8 +231,41 @@
             background: #6b7280;
         }
 
+        .panel-title {
+            margin-bottom: 1rem;
+        }
+
+        .legend {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .legend-item {
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+            padding: 0.8rem 0.9rem;
+            background: color-mix(in srgb, var(--surface) 78%, transparent);
+        }
+
+        .compact-form {
+            margin-top: 1rem;
+        }
+
         @media (max-width: 960px) {
-            .detail-grid {
+            .detail-grid,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-flow,
+            .legend {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .status-flow,
+            .legend {
                 grid-template-columns: 1fr;
             }
         }
@@ -168,6 +281,7 @@
             <article class="panel">
                 <div class="header-row">
                     <div>
+                        <p class="eyebrow">Ticket #{{ ticket.id }}</p>
                         <h1>{{ ticket.asunto }}</h1>
                         <p class="meta">Reportado por {{ ticket.usuario }} el {{ ticket.creado_en|date:"d/m/Y H:i" }}</p>
                     </div>
@@ -178,19 +292,55 @@
                         <span class="sla-box sla-{{ ticket.sla_estado }}"><span class="sla-dot"></span>{{ ticket.sla_texto }}</span>
                     </div>
                 </div>
-                <p>{{ ticket.descripcion|linebreaksbr }}</p>
-                <p class="meta">
-                    {% if ticket.asignado_a %}Asignado a {{ ticket.asignado_a.username }}{% else %}Sin tecnico asignado{% endif %}
-                    {% if ticket.vencimiento %} | Objetivo {{ ticket.vencimiento|date:"d/m/Y H:i" }}{% endif %}
-                    {% if ticket.esta_vencido %} | Vencido{% endif %}
-                </p>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <span class="eyebrow">Asignacion</span>
+                        <div class="summary-value">
+                            {% if ticket.asignado_a %}{{ ticket.asignado_a.username }}{% else %}Pendiente{% endif %}
+                        </div>
+                        <div class="meta">
+                            {% if ticket.asignado_a %}Tecnico responsable{% else %}Aun sin tecnico asignado{% endif %}
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <span class="eyebrow">Ultima actividad</span>
+                        <div class="summary-value">{{ ticket.actualizado_en|timesince }}</div>
+                        <div class="meta">{{ ticket.actualizado_en|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    <div class="summary-card">
+                        <span class="eyebrow">Objetivo</span>
+                        <div class="summary-value">
+                            {% if ticket.vencimiento %}{{ ticket.vencimiento|date:"d/m/Y H:i" }}{% else %}Sin fecha{% endif %}
+                        </div>
+                        <div class="meta">
+                            {% if ticket.esta_vencido %}El ticket se encuentra vencido{% else %}Seguimiento de compromiso{% endif %}
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <span class="eyebrow">Conversacion</span>
+                        <div class="summary-value">{{ mensajes_ticket|length }} mensaje{{ mensajes_ticket|length|pluralize }}</div>
+                        <div class="meta">Incluye visibles para este perfil</div>
+                    </div>
+                </div>
+
+                <div class="description-box">
+                    <p class="eyebrow">Descripcion del problema</p>
+                    <p>{{ ticket.descripcion|linebreaksbr }}</p>
+                    <p class="meta">
+                        {% if ticket.vencimiento %}Objetivo {{ ticket.vencimiento|date:"d/m/Y H:i" }}{% endif %}
+                        {% if ticket.vencimiento and ticket.esta_vencido %} | Vencido{% endif %}
+                    </p>
+                </div>
+
                 <div class="status-flow">
                     {% for paso in ticket.timeline %}
                         <div class="status-node {{ paso.estado }}">{{ paso.etiqueta }}</div>
                     {% endfor %}
                 </div>
+
                 {% if not es_sistemas %}
-                    <div class="actions">
+                    <div class="actions" style="margin-top: 1rem;">
                         {% if ticket.estado != "cerrado" %}
                             <form method="post" action="{% url 'tickets:cerrar' ticket.id %}">
                                 {% csrf_token %}
@@ -208,16 +358,38 @@
             </article>
 
             <article class="panel">
-                <h2>Conversacion</h2>
+                <div class="panel-title">
+                    <h2>Conversacion</h2>
+                    <p class="meta">Cronologia del intercambio y seguimiento del caso.</p>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <strong>Mensaje publico</strong>
+                        <p class="meta">Visible para usuario y equipo de soporte.</p>
+                    </div>
+                    {% if es_sistemas %}
+                        <div class="legend-item">
+                            <strong>Comentario interno</strong>
+                            <p class="meta">Visible solo para personal de sistemas.</p>
+                        </div>
+                    {% endif %}
+                </div>
                 <div class="timeline">
                     {% for mensaje in mensajes_ticket %}
                         <article class="timeline-item {% if mensaje.es_interno %}internal{% endif %}">
-                            <strong>
-                                {{ mensaje.autor.username }}
-                                {% if mensaje.es_interno %}(interno){% endif %}
-                            </strong>
-                            <p>{{ mensaje.contenido|linebreaksbr }}</p>
-                            <p class="meta">{{ mensaje.creado_en|date:"d/m/Y H:i" }}</p>
+                            <div class="message-head">
+                                <div>
+                                    <strong>{{ mensaje.autor.username }}</strong>
+                                    <span class="message-type {% if mensaje.es_interno %}internal{% endif %}">
+                                        {% if mensaje.es_interno %}Interno{% else %}Publico{% endif %}
+                                    </span>
+                                </div>
+                                <div class="meta message-time">
+                                    {{ mensaje.creado_en|date:"d/m/Y H:i" }}<br>
+                                    Hace {{ mensaje.creado_en|timesince }}
+                                </div>
+                            </div>
+                            <div class="message-content">{{ mensaje.contenido|linebreaksbr }}</div>
                         </article>
                     {% empty %}
                         <div class="history-item">Todavia no hay mensajes en este ticket.</div>
@@ -238,7 +410,7 @@
                     <button class="primary" type="submit">Enviar mensaje</button>
                 </form>
                 {% if es_sistemas %}
-                    <form method="post" action="{% url 'tickets:agregar_mensaje' ticket.id %}">
+                    <form class="compact-form" method="post" action="{% url 'tickets:agregar_mensaje' ticket.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="tipo" value="interno">
                         <div>
@@ -296,7 +468,10 @@
                     {% for adjunto in adjuntos %}
                         <div class="attachment">
                             <div>
-                                <strong>{{ adjunto.archivo.name|cut:"tickets/adjuntos/" }}</strong>
+                                <div class="attachment-head">
+                                    <strong>{{ adjunto.archivo.name|cut:"tickets/adjuntos/" }}</strong>
+                                    <span class="file-pill">{{ adjunto.archivo.size|filesizeformat }}</span>
+                                </div>
                                 <p class="meta">Subido por {{ adjunto.subido_por.username }} el {{ adjunto.creado_en|date:"d/m/Y H:i" }}</p>
                             </div>
                             <a class="nav-link" href="{{ adjunto.archivo.url }}">Descargar</a>

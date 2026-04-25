@@ -6,7 +6,7 @@
     <style>
         .hero {
             display: grid;
-            grid-template-columns: 1.4fr 1fr;
+            grid-template-columns: 1.2fr 1fr;
             gap: 1rem;
             margin-bottom: 1.4rem;
         }
@@ -14,7 +14,9 @@
         .hero-card {
             padding: 1.6rem;
             border-radius: 24px;
-            background: linear-gradient(135deg, #18344d, #2f617d);
+            background:
+                radial-gradient(circle at top right, rgba(249, 115, 22, 0.35), transparent 30%),
+                linear-gradient(135deg, #071120, #1e3a5f 56%, #16324b);
             color: white;
             box-shadow: var(--shadow);
         }
@@ -32,8 +34,8 @@
         }
 
         .hero-card p {
-            color: rgba(255, 255, 255, 0.82);
-            max-width: 36rem;
+            color: rgba(255, 255, 255, 0.84);
+            max-width: 40rem;
         }
 
         .stats {
@@ -45,7 +47,7 @@
         .stat {
             padding: 1rem;
             border-radius: 18px;
-            background: rgba(0, 0, 0, 0.85);
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
             border: 1px solid var(--border);
         }
 
@@ -61,12 +63,16 @@
 
         .grid {
             display: grid;
-            grid-template-columns: 330px minmax(0, 1fr);
+            grid-template-columns: 285px minmax(0, 1fr);
             gap: 1rem;
         }
 
         .sidebar,
-        .main-stack {
+        .main-stack,
+        .article-list,
+        .ticket-list,
+        .kanban-column-body,
+        .kanban-board {
             display: grid;
             gap: 1rem;
             align-content: start;
@@ -83,17 +89,101 @@
         }
 
         .ticket-list {
-            display: grid;
             gap: 0.9rem;
+        }
+
+        .kanban-board {
+            grid-template-columns: repeat(4, minmax(290px, 1fr));
+            align-items: start;
+            overflow-x: auto;
+            padding-bottom: 0.35rem;
+        }
+
+        .kanban-column {
+            display: grid;
+            gap: 0.85rem;
+            min-height: 24rem;
+            padding: 1rem;
+            border-radius: 22px;
+            border: 1px solid var(--border);
+            background:
+                linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.78)),
+                radial-gradient(circle at top, rgba(96, 165, 250, 0.08), transparent 60%);
+            transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .kanban-column.drag-target {
+            border-color: var(--info);
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.18);
+            transform: translateY(-2px);
+        }
+
+        .kanban-column.is-saving {
+            opacity: 0.72;
+        }
+
+        .kanban-column-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .kanban-column-head h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .column-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2rem;
+            height: 2rem;
+            padding: 0 0.6rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            font-weight: bold;
         }
 
         .ticket-card {
             display: grid;
             gap: 0.9rem;
-            padding: 1.1rem;
+            padding: 1.05rem;
             border-radius: 18px;
             border: 1px solid var(--border);
-            background: rgb(0, 0, 0);
+            background: color-mix(in srgb, var(--surface) 92%, transparent);
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .ticket-card.draggable {
+            cursor: grab;
+        }
+
+        .ticket-card.draggable:active {
+            cursor: grabbing;
+        }
+
+        .ticket-card.is-dragging {
+            opacity: 0.55;
+            transform: rotate(1deg) scale(0.99);
+            border-color: var(--info);
+            box-shadow: 0 16px 34px rgba(2, 6, 23, 0.38);
+        }
+
+        .ticket-card[data-current-state="cerrado"] {
+            background: color-mix(in srgb, var(--surface) 78%, transparent);
+            border-style: dashed;
+        }
+
+        .ticket-card[data-current-state="cerrado"] .progress,
+        .ticket-card[data-current-state="cerrado"] .quick-actions {
+            display: none;
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-2px);
         }
 
         .ticket-head {
@@ -105,44 +195,88 @@
 
         .ticket-head h3 {
             margin: 0 0 0.35rem;
+            font-size: 1.02rem;
         }
 
         .badges,
         .metrics-row,
-        .ticket-links {
+        .ticket-links,
+        .quick-actions,
+        .board-toolbar {
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
         }
 
+        .board-toolbar {
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .board-hint {
+            padding: 0.6rem 0.85rem;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--info) 15%, var(--surface));
+            border: 1px solid color-mix(in srgb, var(--info) 35%, var(--border));
+            color: var(--ink);
+        }
+
         .badge {
             display: inline-flex;
+            align-items: center;
             padding: 0.3rem 0.75rem;
             border-radius: 999px;
             font-size: 0.88rem;
             font-weight: bold;
+            background: var(--chip-bg);
+            color: var(--chip-ink);
+            border: 1px solid var(--chip-bg);
         }
 
-        .badge-abierto { background: #000000; color: var(--warn); }
-        .badge-en_proceso { background: #000000; color: var(--info); }
-        .badge-resuelto { background: #000000; color: var(--ok); }
-        .badge-cerrado { background: #000000; color: #4b5563; }
-        .priority-baja { background: #000000; color: #075985; }
-        .priority-media { background: #000000; color: #eeff00; }
-        .priority-alta { background: #000000; color: #ff4000; }
-        .priority-critica { background: #000000; color: #ff0000; }
-        .late { color: #b91c1c; font-weight: bold; }
+        .badge-abierto {
+            color: #fdba74;
+        }
 
-        .article-list {
-            display: grid;
-            gap: 0.8rem;
+        .badge-en_proceso {
+            color: #93c5fd;
+        }
+
+        .badge-resuelto {
+            color: #86efac;
+        }
+
+        .badge-cerrado {
+            color: #9ca3af;
+        }
+
+        .priority-baja {
+            color: #67e8f9;
+        }
+
+        .priority-media {
+            color: #fde047;
+        }
+
+        .priority-alta {
+            color: #fb923c;
+        }
+
+        .priority-critica {
+            color: #f87171;
+        }
+
+        .late {
+            color: #fca5a5;
+            font-weight: bold;
         }
 
         .article {
             padding: 0.95rem;
             border: 1px solid var(--border);
             border-radius: 16px;
-            background: white;
+            background: color-mix(in srgb, var(--surface) 90%, transparent);
+            text-decoration: none;
         }
 
         .sla {
@@ -161,7 +295,7 @@
 
         .sla-en_tiempo .sla-dot,
         .sla-cumplido .sla-dot {
-            background: #22c55e;
+            background: var(--ok);
         }
 
         .sla-riesgo .sla-dot {
@@ -179,35 +313,29 @@
         .progress {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.55rem;
+            gap: 0.45rem;
         }
 
         .progress-step {
-            padding: 0.55rem 0.7rem;
+            padding: 0.5rem 0.55rem;
             border: 1px solid var(--border);
             border-radius: 14px;
             text-align: center;
-            font-size: 0.83rem;
-            background: #090909;
+            font-size: 0.78rem;
+            background: color-mix(in srgb, var(--surface) 86%, transparent);
             color: var(--muted);
         }
 
         .progress-step.completado {
-            border-color: #14532d;
-            color: #86efac;
-            background: #052e16;
+            border-color: color-mix(in srgb, var(--ok) 35%, var(--border));
+            color: var(--ok);
+            background: color-mix(in srgb, var(--ok) 18%, var(--surface));
         }
 
         .progress-step.actual {
-            border-color: #1d4ed8;
-            color: #bfdbfe;
-            background: #172554;
-        }
-
-        .quick-actions {
-            display: flex;
-            gap: 0.55rem;
-            flex-wrap: wrap;
+            border-color: color-mix(in srgb, var(--info) 35%, var(--border));
+            color: var(--info);
+            background: color-mix(in srgb, var(--info) 16%, var(--surface));
         }
 
         .quick-actions form {
@@ -219,12 +347,26 @@
             padding: 0.65rem 0.85rem;
         }
 
-        .empty {
-            padding: 1.4rem;
+        .empty,
+        .empty-dropzone {
+            padding: 1.2rem;
             border-radius: 18px;
             border: 1px dashed var(--border);
             text-align: center;
             color: var(--muted);
+        }
+
+        .empty-dropzone {
+            min-height: 7rem;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        @media (max-width: 1400px) {
+            .kanban-board {
+                grid-template-columns: repeat(4, minmax(280px, 1fr));
+            }
         }
 
         @media (max-width: 960px) {
@@ -239,7 +381,7 @@
         <article class="hero-card">
             <h1>{% if es_sistemas %}Centro de soporte{% else %}Mis solicitudes{% endif %}</h1>
             {% if es_sistemas %}
-                <p>Gestiona prioridades, asigna tecnicos, conversa con usuarios, revisa vencimientos y mantén trazabilidad completa de cada caso.</p>
+                <p>Mueve tickets entre bloques como en Asana, reordena la cola visualmente y abre cada caso solo cuando de verdad necesitas profundizar.</p>
             {% else %}
                 <p>Crea tickets, adjunta evidencia, conversa con soporte y consulta respuestas de la base de conocimiento.</p>
             {% endif %}
@@ -346,95 +488,316 @@
 
         <section class="main-stack">
             <article class="panel">
-                <h2>{% if es_sistemas %}Cola de tickets{% else %}Mis tickets{% endif %}</h2>
                 {% if es_sistemas %}
-                    <p class="meta">Para cambiar estado, prioridad, categoria o asignacion, abre el detalle del ticket.</p>
-                {% endif %}
-                {% if es_sistemas and metricas.por_categoria %}
-                    <div class="metrics-row">
-                        {% for item in metricas.por_categoria %}
-                            <span class="badge">{{ item.categoria }}: {{ item.total }}</span>
+                    <div class="board-toolbar">
+                        <div>
+                            <h2>Tablero de tickets</h2>
+                            <p class="meta">Arrastra cada tarjeta al bloque correspondiente para actualizar su estado.</p>
+                        </div>
+                        <span class="board-hint">Movimiento tipo Asana activado</span>
+                    </div>
+                    {% if metricas.por_categoria %}
+                        <div class="metrics-row" style="margin-bottom: 1rem;">
+                            {% for item in metricas.por_categoria %}
+                                <span class="badge">{{ item.categoria }}: {{ item.total }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <section class="kanban-board" id="kanban-board">
+                        {% for columna in columnas_estado %}
+                            <article class="kanban-column" data-state="{{ columna.valor }}">
+                                <div class="kanban-column-head">
+                                    <h3>{{ columna.etiqueta }}</h3>
+                                    <span class="column-count" data-count>{{ columna.tickets|length }}</span>
+                                </div>
+                                <div class="kanban-column-body" data-dropzone>
+                                    {% for ticket in columna.tickets %}
+                                        <article
+                                            class="ticket-card draggable"
+                                            draggable="true"
+                                            data-ticket-id="{{ ticket.id }}"
+                                            data-current-state="{{ ticket.estado }}"
+                                            data-move-url="{% url 'tickets:mover_estado' ticket.id %}">
+                                            <div class="ticket-head">
+                                                <div>
+                                                    <h3>{{ ticket.asunto }}</h3>
+                                                    <p><strong>Usuario:</strong> {{ ticket.usuario }}</p>
+                                                </div>
+                                                <div class="badges">
+                                                    <span class="badge badge-{{ ticket.estado }}" data-state-badge>{{ ticket.get_estado_display }}</span>
+                                                    <span class="badge priority-{{ ticket.prioridad }}">{{ ticket.get_prioridad_display }}</span>
+                                                </div>
+                                            </div>
+                                            <p>{{ ticket.descripcion|truncatechars:150 }}</p>
+                                            <div class="metrics-row">
+                                                <span class="badge">{{ ticket.get_categoria_display }}</span>
+                                                {% if ticket.asignado_a %}
+                                                    <span class="badge">Tecnico: {{ ticket.asignado_a.username }}</span>
+                                                {% else %}
+                                                    <span class="badge">Sin asignar</span>
+                                                {% endif %}
+                                                <span class="badge">Mensajes: {{ ticket.mensajes.count }}</span>
+                                                <span class="badge">Adjuntos: {{ ticket.adjuntos.count }}</span>
+                                                <span class="sla sla-{{ ticket.sla_estado }}"><span class="sla-dot"></span>{{ ticket.sla_texto }}</span>
+                                            </div>
+                                            <div class="progress">
+                                                {% for paso in ticket.timeline %}
+                                                    <div class="progress-step {{ paso.estado }}">{{ paso.etiqueta }}</div>
+                                                {% endfor %}
+                                            </div>
+                                            <p class="meta">
+                                                Creado {{ ticket.creado_en|date:"d/m/Y H:i" }}
+                                                {% if ticket.vencimiento %}
+                                                    | Objetivo {{ ticket.vencimiento|date:"d/m/Y H:i" }}
+                                                {% endif %}
+                                                {% if ticket.esta_vencido %}
+                                                    <span class="late">| Vencido</span>
+                                                {% endif %}
+                                            </p>
+                                            <div class="ticket-links">
+                                                <a class="nav-link" href="{% url 'tickets:detalle' ticket.id %}">Abrir y gestionar</a>
+                                            </div>
+                                            {% if ticket.estado != "cerrado" %}
+                                                <div class="quick-actions">
+                                                    {% if not ticket.asignado_a or ticket.asignado_a != request.user %}
+                                                        <form method="post" action="{% url 'tickets:accion_rapida' ticket.id 'tomar' %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit">Asignarme</button>
+                                                        </form>
+                                                    {% endif %}
+                                                    {% if ticket.estado == "abierto" %}
+                                                        <form method="post" action="{% url 'tickets:accion_rapida' ticket.id 'proceso' %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit">Pasar a proceso</button>
+                                                        </form>
+                                                    {% endif %}
+                                                    {% if ticket.estado != "resuelto" and ticket.estado != "cerrado" %}
+                                                        <form method="post" action="{% url 'tickets:accion_rapida' ticket.id 'resolver' %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit">Resolver</button>
+                                                        </form>
+                                                    {% endif %}
+                                                </div>
+                                            {% else %}
+                                                <p class="meta">Ticket cerrado. Puedes abrir el detalle para revisar el historial completo.</p>
+                                            {% endif %}
+                                        </article>
+                                    {% empty %}
+                                        <div class="empty-dropzone">Suelta aqui los tickets de esta etapa.</div>
+                                    {% endfor %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </section>
+                {% else %}
+                    <h2>Mis tickets</h2>
+                    <div class="ticket-list">
+                        {% for ticket in tickets %}
+                            <article class="ticket-card">
+                                <div class="ticket-head">
+                                    <div>
+                                        <h3>{{ ticket.asunto }}</h3>
+                                        <p><strong>Usuario:</strong> {{ ticket.usuario }}</p>
+                                    </div>
+                                    <div class="badges">
+                                        <span class="badge badge-{{ ticket.estado }}">{{ ticket.get_estado_display }}</span>
+                                        <span class="badge priority-{{ ticket.prioridad }}">{{ ticket.get_prioridad_display }}</span>
+                                    </div>
+                                </div>
+                                <p>{{ ticket.descripcion|truncatechars:180 }}</p>
+                                <div class="metrics-row">
+                                    <span class="badge">{{ ticket.get_categoria_display }}</span>
+                                    {% if ticket.asignado_a %}
+                                        <span class="badge">Tecnico: {{ ticket.asignado_a.username }}</span>
+                                    {% else %}
+                                        <span class="badge">Sin asignar</span>
+                                    {% endif %}
+                                    <span class="badge">Mensajes: {{ ticket.mensajes.count }}</span>
+                                    <span class="badge">Adjuntos: {{ ticket.adjuntos.count }}</span>
+                                    <span class="sla sla-{{ ticket.sla_estado }}"><span class="sla-dot"></span>{{ ticket.sla_texto }}</span>
+                                </div>
+                                <div class="progress">
+                                    {% for paso in ticket.timeline %}
+                                        <div class="progress-step {{ paso.estado }}">{{ paso.etiqueta }}</div>
+                                    {% endfor %}
+                                </div>
+                                <p class="meta">
+                                    Creado {{ ticket.creado_en|date:"d/m/Y H:i" }}
+                                    {% if ticket.vencimiento %}
+                                        | Objetivo {{ ticket.vencimiento|date:"d/m/Y H:i" }}
+                                    {% endif %}
+                                    {% if ticket.esta_vencido %}
+                                        <span class="late">| Vencido</span>
+                                    {% endif %}
+                                </p>
+                                <div class="ticket-links">
+                                    <a class="nav-link" href="{% url 'tickets:detalle' ticket.id %}">Abrir detalle</a>
+                                </div>
+                            </article>
+                        {% empty %}
+                            <div class="empty">Todavia no tienes tickets. Puedes crear el primero desde el formulario.</div>
                         {% endfor %}
                     </div>
                 {% endif %}
-                <div class="ticket-list">
-                    {% for ticket in tickets %}
-                        <article class="ticket-card">
-                            <div class="ticket-head">
-                                <div>
-                                    <h3>{{ ticket.asunto }}</h3>
-                                    <p><strong>Usuario:</strong> {{ ticket.usuario }}</p>
-                                </div>
-                                <div class="badges">
-                                    <span class="badge badge-{{ ticket.estado }}">{{ ticket.get_estado_display }}</span>
-                                    <span class="badge priority-{{ ticket.prioridad }}">{{ ticket.get_prioridad_display }}</span>
-                                </div>
-                            </div>
-                            <p>{{ ticket.descripcion|truncatechars:180 }}</p>
-                            <div class="metrics-row">
-                                <span class="badge">{{ ticket.get_categoria_display }}</span>
-                                {% if ticket.asignado_a %}
-                                    <span class="badge">Tecnico: {{ ticket.asignado_a.username }}</span>
-                                {% else %}
-                                    <span class="badge">Sin asignar</span>
-                                {% endif %}
-                                <span class="badge">Mensajes: {{ ticket.mensajes.count }}</span>
-                                <span class="badge">Adjuntos: {{ ticket.adjuntos.count }}</span>
-                                <span class="sla sla-{{ ticket.sla_estado }}"><span class="sla-dot"></span>{{ ticket.sla_texto }}</span>
-                            </div>
-                            <div class="progress">
-                                {% for paso in ticket.timeline %}
-                                    <div class="progress-step {{ paso.estado }}">{{ paso.etiqueta }}</div>
-                                {% endfor %}
-                            </div>
-                            <p class="meta">
-                                Creado {{ ticket.creado_en|date:"d/m/Y H:i" }}
-                                {% if ticket.vencimiento %}
-                                    | Objetivo {{ ticket.vencimiento|date:"d/m/Y H:i" }}
-                                {% endif %}
-                                {% if ticket.esta_vencido %}
-                                    <span class="late">| Vencido</span>
-                                {% endif %}
-                            </p>
-                            <div class="ticket-links">
-                                <a class="nav-link" href="{% url 'tickets:detalle' ticket.id %}">
-                                    {% if es_sistemas %}Abrir y gestionar{% else %}Abrir detalle{% endif %}
-                                </a>
-                            </div>
-                            {% if es_sistemas %}
-                                <div class="quick-actions">
-                                    {% if not ticket.asignado_a or ticket.asignado_a != request.user %}
-                                        <form method="post" action="{% url 'tickets:accion_rapida' ticket.id 'tomar' %}">
-                                            {% csrf_token %}
-                                            <button type="submit">Asignarme</button>
-                                        </form>
-                                    {% endif %}
-                                    {% if ticket.estado == "abierto" %}
-                                        <form method="post" action="{% url 'tickets:accion_rapida' ticket.id 'proceso' %}">
-                                            {% csrf_token %}
-                                            <button type="submit">Pasar a proceso</button>
-                                        </form>
-                                    {% endif %}
-                                    {% if ticket.estado != "resuelto" and ticket.estado != "cerrado" %}
-                                        <form method="post" action="{% url 'tickets:accion_rapida' ticket.id 'resolver' %}">
-                                            {% csrf_token %}
-                                            <button type="submit">Resolver</button>
-                                        </form>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-                        </article>
-                    {% empty %}
-                        <div class="empty">
-                            {% if es_sistemas %}
-                                No hay tickets para mostrar con los filtros actuales.
-                            {% else %}
-                                Todavia no tienes tickets. Puedes crear el primero desde el formulario.
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
             </article>
         </section>
     </section>
+
+    {% if es_sistemas %}
+        <script>
+            (function () {
+                const board = document.getElementById("kanban-board");
+                if (!board) return;
+
+                let draggingCard = null;
+                let originColumn = null;
+
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) {
+                        return parts.pop().split(";").shift();
+                    }
+                    return "";
+                }
+
+                function updateCounts() {
+                    board.querySelectorAll(".kanban-column").forEach(function (column) {
+                        const countNode = column.querySelector("[data-count]");
+                        const cards = column.querySelectorAll(".ticket-card").length;
+                        if (countNode) countNode.textContent = cards;
+                    });
+                }
+
+                function ensureEmptyState(column) {
+                    const body = column.querySelector("[data-dropzone]");
+                    if (!body) return;
+                    const hasCards = body.querySelector(".ticket-card");
+                    let empty = body.querySelector(".empty-dropzone");
+                    if (hasCards && empty) {
+                        empty.remove();
+                    }
+                    if (!hasCards && !empty) {
+                        empty = document.createElement("div");
+                        empty.className = "empty-dropzone";
+                        empty.textContent = "Suelta aqui los tickets de esta etapa.";
+                        body.appendChild(empty);
+                    }
+                }
+
+                function updateProgress(card, state) {
+                    const steps = Array.from(card.querySelectorAll(".progress-step"));
+                    const order = ["abierto", "en_proceso", "resuelto", "cerrado"];
+                    const currentIndex = order.indexOf(state);
+                    steps.forEach(function (step, index) {
+                        step.classList.remove("completado", "actual");
+                        if (index < currentIndex) {
+                            step.classList.add("completado");
+                        } else if (index === currentIndex) {
+                            step.classList.add("actual");
+                        }
+                    });
+                }
+
+                function updateCardState(card, state, stateLabel) {
+                    card.dataset.currentState = state;
+                    const badge = card.querySelector("[data-state-badge]");
+                    if (badge) {
+                        badge.textContent = stateLabel;
+                        badge.className = `badge badge-${state}`;
+                    }
+                    updateProgress(card, state);
+                }
+
+                async function persistMove(card, column) {
+                    const targetState = column.dataset.state;
+                    const csrfToken = getCookie("csrftoken");
+                    const body = new URLSearchParams({ estado: targetState });
+                    column.classList.add("is-saving");
+
+                    try {
+                        const response = await fetch(card.dataset.moveUrl, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                                "X-CSRFToken": csrfToken,
+                                "X-Requested-With": "XMLHttpRequest",
+                            },
+                            body: body.toString(),
+                        });
+                        const data = await response.json();
+                        if (!response.ok || !data.ok) {
+                            throw new Error(data.error || "No se pudo mover el ticket.");
+                        }
+                        updateCardState(card, data.ticket.estado, data.ticket.estado_display);
+                    } catch (error) {
+                        const originBody = originColumn ? originColumn.querySelector("[data-dropzone]") : null;
+                        if (originBody) {
+                            originBody.appendChild(card);
+                            ensureEmptyState(originColumn);
+                            updateCounts();
+                        }
+                        window.alert(error.message);
+                    } finally {
+                        column.classList.remove("is-saving");
+                        if (originColumn) {
+                            ensureEmptyState(originColumn);
+                        }
+                        ensureEmptyState(column);
+                        updateCounts();
+                    }
+                }
+
+                board.querySelectorAll(".ticket-card.draggable").forEach(function (card) {
+                    card.addEventListener("dragstart", function () {
+                        draggingCard = card;
+                        originColumn = card.closest(".kanban-column");
+                        card.classList.add("is-dragging");
+                    });
+
+                    card.addEventListener("dragend", function () {
+                        card.classList.remove("is-dragging");
+                        board.querySelectorAll(".kanban-column").forEach(function (column) {
+                            column.classList.remove("drag-target");
+                        });
+                        draggingCard = null;
+                    });
+                });
+
+                board.querySelectorAll(".kanban-column").forEach(function (column) {
+                    column.addEventListener("dragover", function (event) {
+                        event.preventDefault();
+                        column.classList.add("drag-target");
+                    });
+
+                    column.addEventListener("dragleave", function () {
+                        column.classList.remove("drag-target");
+                    });
+
+                    column.addEventListener("drop", function (event) {
+                        event.preventDefault();
+                        column.classList.remove("drag-target");
+                        if (!draggingCard) return;
+
+                        const body = column.querySelector("[data-dropzone]");
+                        if (!body) return;
+
+                        body.appendChild(draggingCard);
+                        ensureEmptyState(column);
+                        if (originColumn) {
+                            ensureEmptyState(originColumn);
+                        }
+                        updateCounts();
+
+                        if (draggingCard.dataset.currentState !== column.dataset.state) {
+                            persistMove(draggingCard, column);
+                        }
+                    });
+                });
+
+                updateCounts();
+            })();
+        </script>
+    {% endif %}
 {% endblock %}

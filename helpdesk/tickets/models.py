@@ -86,7 +86,22 @@ class Ticket(models.Model):
         blank=True,
     )
     respondido_en = models.DateTimeField(null=True, blank=True)
+    resuelto_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="tickets_resueltos",
+        null=True,
+        blank=True,
+    )
     resuelto_en = models.DateTimeField(null=True, blank=True)
+    cerrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="tickets_cerrados",
+        null=True,
+        blank=True,
+    )
+    cerrado_en = models.DateTimeField(null=True, blank=True)
     cerrado_por_usuario = models.BooleanField(default=False)
     vencimiento = models.DateTimeField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)

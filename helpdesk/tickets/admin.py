@@ -43,6 +43,8 @@ class TicketAdmin(admin.ModelAdmin):
         "prioridad",
         "categoria",
         "asignado_a",
+        "resuelto_por",
+        "cerrado_por",
         "creado_en",
         "actualizado_en",
     )

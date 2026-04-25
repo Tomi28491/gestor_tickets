@@ -1,10 +1,13 @@
+import csv
+from datetime import datetime
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.db.models import Count, Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -70,6 +73,33 @@ def timeline_estado(ticket):
 def preparar_ticket_ui(ticket):
     ticket.timeline = timeline_estado(ticket)
     return ticket
+
+
+def columnas_estado():
+    return [
+        {"valor": Ticket.Estado.ABIERTO, "etiqueta": "Abierto"},
+        {"valor": Ticket.Estado.EN_PROCESO, "etiqueta": "En proceso"},
+        {"valor": Ticket.Estado.RESUELTO, "etiqueta": "Resuelto"},
+        {"valor": Ticket.Estado.CERRADO, "etiqueta": "Cerrado"},
+    ]
+
+
+def resolver_mes_reporte(month_value):
+    now = timezone.localtime()
+    if month_value:
+        try:
+            start = datetime.strptime(month_value, "%Y-%m")
+            start = timezone.make_aware(start, timezone.get_current_timezone())
+        except ValueError:
+            start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    if start.month == 12:
+        end = start.replace(year=start.year + 1, month=1)
+    else:
+        end = start.replace(month=start.month + 1)
+    return start, end
 
 
 def tickets_visibles_para(request):
@@ -186,10 +216,22 @@ def index(request):
         "por_categoria": tickets.values("categoria").annotate(total=Count("id")).order_by("-total"),
     }
     tickets = [preparar_ticket_ui(ticket) for ticket in tickets]
+    tickets_por_estado = {columna["valor"]: [] for columna in columnas_estado()}
+    for ticket in tickets:
+        tickets_por_estado[ticket.estado].append(ticket)
+    columnas = []
+    for columna in columnas_estado():
+        columnas.append(
+            {
+                **columna,
+                "tickets": tickets_por_estado[columna["valor"]],
+            }
+        )
     articulos = ArticuloBaseConocimiento.objects.filter(publicado=True)[:4]
     context = {
         "form": form,
         "tickets": tickets,
+        "columnas_estado": columnas,
         "resumen_estados": resumen_estados,
         "metricas": metricas,
         "filtro_form": filtro_form,
@@ -264,6 +306,9 @@ def accion_rapida_ticket(request, ticket_id, accion):
     elif accion == "resolver":
         ticket.estado = Ticket.Estado.RESUELTO
         ticket.resuelto_en = timezone.now()
+        ticket.resuelto_por = request.user
+        ticket.cerrado_en = None
+        ticket.cerrado_por = None
         if not ticket.asignado_a:
             ticket.asignado_a = request.user
         registrar_historial(ticket, "Ticket resuelto desde acciones rapidas", request.user)
@@ -276,6 +321,72 @@ def accion_rapida_ticket(request, ticket_id, accion):
     ticket.save()
     messages.success(request, mensaje)
     return redirect("tickets:index")
+
+
+@login_required
+def mover_ticket_estado(request, ticket_id):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Metodo no permitido."}, status=405)
+    if not es_sistemas(request):
+        return JsonResponse({"ok": False, "error": "No tienes permisos para gestionar tickets."}, status=403)
+
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    destino = request.POST.get("estado", "").strip()
+    estados_validos = {valor for valor, _ in Ticket.Estado.choices}
+    if destino not in estados_validos:
+        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+    if destino == ticket.estado:
+        return JsonResponse(
+            {
+                "ok": True,
+                "ticket": {
+                    "id": ticket.id,
+                    "estado": ticket.estado,
+                    "estado_display": ticket.get_estado_display(),
+                },
+            }
+        )
+
+    estado_anterior = ticket.get_estado_display()
+    ticket.estado = destino
+    ticket.cerrado_por_usuario = False
+    if destino == Ticket.Estado.RESUELTO:
+        ticket.resuelto_en = timezone.now()
+        ticket.resuelto_por = request.user
+        ticket.cerrado_en = None
+        ticket.cerrado_por = None
+    elif destino in {Ticket.Estado.ABIERTO, Ticket.Estado.EN_PROCESO}:
+        ticket.resuelto_en = None
+        ticket.resuelto_por = None
+        ticket.cerrado_en = None
+        ticket.cerrado_por = None
+    elif destino == Ticket.Estado.CERRADO:
+        if not ticket.resuelto_en:
+            ticket.resuelto_en = timezone.now()
+        if not ticket.resuelto_por:
+            ticket.resuelto_por = request.user
+        ticket.cerrado_en = timezone.now()
+        ticket.cerrado_por = request.user
+    if destino in {Ticket.Estado.EN_PROCESO, Ticket.Estado.RESUELTO} and not ticket.asignado_a:
+        ticket.asignado_a = request.user
+    ticket.save()
+    registrar_historial(
+        ticket,
+        f"Estado movido de {estado_anterior} a {ticket.get_estado_display()} desde el tablero",
+        request.user,
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "ticket": {
+                "id": ticket.id,
+                "estado": ticket.estado,
+                "estado_display": ticket.get_estado_display(),
+                "estado_badge": ticket.get_estado_display(),
+                "timeline": timeline_estado(ticket),
+            },
+        }
+    )
 
 
 @login_required
@@ -298,8 +409,22 @@ def gestionar_ticket(request, ticket_id):
         ticket = form.save(commit=False)
         if ticket.estado == Ticket.Estado.RESUELTO and previo["estado"] != Ticket.Estado.RESUELTO:
             ticket.resuelto_en = timezone.now()
+            ticket.resuelto_por = request.user
+            ticket.cerrado_en = None
+            ticket.cerrado_por = None
+        if ticket.estado == Ticket.Estado.CERRADO and previo["estado"] != Ticket.Estado.CERRADO:
+            if not ticket.resuelto_en:
+                ticket.resuelto_en = timezone.now()
+            if not ticket.resuelto_por:
+                ticket.resuelto_por = request.user
+            ticket.cerrado_en = timezone.now()
+            ticket.cerrado_por = request.user
         if ticket.estado in {Ticket.Estado.ABIERTO, Ticket.Estado.EN_PROCESO}:
             ticket.cerrado_por_usuario = False
+            ticket.resuelto_en = None
+            ticket.resuelto_por = None
+            ticket.cerrado_en = None
+            ticket.cerrado_por = None
         ticket.save()
 
         cambios = []
@@ -411,7 +536,23 @@ def cerrar_ticket(request, ticket_id):
 
     ticket.estado = Ticket.Estado.CERRADO
     ticket.cerrado_por_usuario = True
-    ticket.save(update_fields=["estado", "cerrado_por_usuario", "actualizado_en"])
+    if not ticket.resuelto_en:
+        ticket.resuelto_en = timezone.now()
+    if not ticket.resuelto_por:
+        ticket.resuelto_por = ticket.asignado_a or ticket.respondido_por
+    ticket.cerrado_en = timezone.now()
+    ticket.cerrado_por = request.user
+    ticket.save(
+        update_fields=[
+            "estado",
+            "cerrado_por_usuario",
+            "resuelto_en",
+            "resuelto_por",
+            "cerrado_en",
+            "cerrado_por",
+            "actualizado_en",
+        ]
+    )
     registrar_historial(ticket, "El usuario cerro el ticket", request.user)
     messages.success(request, "El ticket fue cerrado.")
     return redirect("tickets:detalle", ticket_id=ticket.id)
@@ -432,10 +573,99 @@ def reabrir_ticket(request, ticket_id):
 
     ticket.estado = Ticket.Estado.ABIERTO
     ticket.cerrado_por_usuario = False
-    ticket.save(update_fields=["estado", "cerrado_por_usuario", "actualizado_en"])
+    ticket.resuelto_en = None
+    ticket.resuelto_por = None
+    ticket.cerrado_en = None
+    ticket.cerrado_por = None
+    ticket.save(
+        update_fields=[
+            "estado",
+            "cerrado_por_usuario",
+            "resuelto_en",
+            "resuelto_por",
+            "cerrado_en",
+            "cerrado_por",
+            "actualizado_en",
+        ]
+    )
     registrar_historial(ticket, "El usuario reabrio el ticket", request.user)
     messages.success(request, "El ticket fue reabierto.")
     return redirect("tickets:detalle", ticket_id=ticket.id)
+
+
+@login_required
+def reporte_mensual(request):
+    if not es_sistemas(request):
+        return HttpResponseForbidden("No tienes permisos para ver reportes.")
+
+    month_value = request.GET.get("month", "").strip()
+    start, end = resolver_mes_reporte(month_value)
+    month_value = start.strftime("%Y-%m")
+
+    tickets_resueltos = (
+        Ticket.objects.select_related("asignado_a", "resuelto_por", "cerrado_por", "creado_por")
+        .filter(resuelto_en__gte=start, resuelto_en__lt=end)
+        .order_by("-resuelto_en", "-cerrado_en", "-actualizado_en")
+    )
+    tickets_cerrados = (
+        Ticket.objects.select_related("asignado_a", "resuelto_por", "cerrado_por", "creado_por")
+        .filter(cerrado_en__gte=start, cerrado_en__lt=end)
+        .order_by("-cerrado_en", "-resuelto_en", "-actualizado_en")
+    )
+    tickets_creados = Ticket.objects.filter(creado_en__gte=start, creado_en__lt=end)
+
+    if request.GET.get("format") == "csv":
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="reporte-tickets-{month_value}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Ticket ID",
+                "Asunto",
+                "Estado",
+                "Categoria",
+                "Prioridad",
+                "Asignado a",
+                "Resuelto por",
+                "Resuelto en",
+                "Cerrado por",
+                "Cerrado en",
+                "Cerrado por usuario",
+            ]
+        )
+        for ticket in tickets_cerrados:
+            writer.writerow(
+                [
+                    ticket.id,
+                    ticket.asunto,
+                    ticket.get_estado_display(),
+                    ticket.get_categoria_display(),
+                    ticket.get_prioridad_display(),
+                    ticket.asignado_a.username if ticket.asignado_a else "",
+                    ticket.resuelto_por.username if ticket.resuelto_por else "",
+                    timezone.localtime(ticket.resuelto_en).strftime("%d/%m/%Y %H:%M") if ticket.resuelto_en else "",
+                    ticket.cerrado_por.username if ticket.cerrado_por else "",
+                    timezone.localtime(ticket.cerrado_en).strftime("%d/%m/%Y %H:%M") if ticket.cerrado_en else "",
+                    "Si" if ticket.cerrado_por_usuario else "No",
+                ]
+            )
+        return response
+
+    context = {
+        "month_value": month_value,
+        "periodo_inicio": start,
+        "periodo_fin": end,
+        "resumen": {
+            "creados": tickets_creados.count(),
+            "resueltos": tickets_resueltos.count(),
+            "cerrados": tickets_cerrados.count(),
+            "cerrados_por_usuario": tickets_cerrados.filter(cerrado_por_usuario=True).count(),
+            "cerrados_por_sistemas": tickets_cerrados.filter(cerrado_por_usuario=False).count(),
+        },
+        "tickets_resueltos": tickets_resueltos[:12],
+        "tickets_cerrados": tickets_cerrados,
+    }
+    return render(request, "tickets/monthly_report.html", context)
 
 
 @login_required

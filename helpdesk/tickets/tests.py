@@ -175,6 +175,96 @@ class TicketViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(ticket.estado, Ticket.Estado.RESUELTO)
         self.assertIsNotNone(ticket.resuelto_en)
+        self.assertEqual(ticket.resuelto_por, self.sistemas)
+
+    def test_sistemas_puede_mover_ticket_de_columna(self):
+        ticket = self.crear_ticket()
+        self.client.login(username="soporte", password="claveSegura123")
+
+        response = self.client.post(
+            reverse("tickets:mover_estado", args=[ticket.id]),
+            {"estado": Ticket.Estado.EN_PROCESO},
+        )
+
+        ticket.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ticket.estado, Ticket.Estado.EN_PROCESO)
+        self.assertEqual(ticket.asignado_a, self.sistemas)
+        self.assertTrue(
+            TicketHistorial.objects.filter(
+                ticket=ticket,
+                descripcion__icontains="desde el tablero",
+            ).exists()
+        )
+
+    def test_usuario_no_puede_mover_ticket_de_columna(self):
+        ticket = self.crear_ticket()
+        self.client.login(username="ana", password="claveSegura123")
+
+        response = self.client.post(
+            reverse("tickets:mover_estado", args=[ticket.id]),
+            {"estado": Ticket.Estado.EN_PROCESO},
+        )
+
+        ticket.refresh_from_db()
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(ticket.estado, Ticket.Estado.ABIERTO)
+
+    def test_reporte_mensual_muestra_tickets_cerrados_y_resueltos(self):
+        ticket = self.crear_ticket(estado=Ticket.Estado.CERRADO, asignado_a=self.sistemas)
+        ticket.resuelto_por = self.sistemas
+        ticket.resuelto_en = ticket.creado_en
+        ticket.cerrado_por = self.usuario
+        ticket.cerrado_en = ticket.creado_en
+        ticket.cerrado_por_usuario = True
+        ticket.save(
+            update_fields=[
+                "resuelto_por",
+                "resuelto_en",
+                "cerrado_por",
+                "cerrado_en",
+                "cerrado_por_usuario",
+            ]
+        )
+
+        self.client.login(username="soporte", password="claveSegura123")
+        response = self.client.get(reverse("tickets:reporte_mensual"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reporte mensual")
+        self.assertContains(response, ticket.asunto)
+        self.assertContains(response, self.sistemas.username)
+
+    def test_reporte_mensual_csv_descarga(self):
+        ticket = self.crear_ticket(estado=Ticket.Estado.CERRADO, asignado_a=self.sistemas)
+        ticket.resuelto_por = self.sistemas
+        ticket.resuelto_en = ticket.creado_en
+        ticket.cerrado_por = self.usuario
+        ticket.cerrado_en = ticket.creado_en
+        ticket.cerrado_por_usuario = True
+        ticket.save(
+            update_fields=[
+                "resuelto_por",
+                "resuelto_en",
+                "cerrado_por",
+                "cerrado_en",
+                "cerrado_por_usuario",
+            ]
+        )
+
+        self.client.login(username="soporte", password="claveSegura123")
+        response = self.client.get(reverse("tickets:reporte_mensual"), {"format": "csv"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        self.assertIn(ticket.asunto, response.content.decode("utf-8"))
+
+    def test_usuario_no_puede_ver_reporte_mensual(self):
+        self.client.login(username="ana", password="claveSegura123")
+
+        response = self.client.get(reverse("tickets:reporte_mensual"))
+
+        self.assertEqual(response.status_code, 403)
 
     def test_usuario_no_puede_gestionar_tickets(self):
         ticket = self.crear_ticket()

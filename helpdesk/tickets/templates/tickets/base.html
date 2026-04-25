@@ -4,40 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Gestor de tickets{% endblock %}</title>
-    <script>
-        (function () {
-            const savedTheme = localStorage.getItem("helpdesk-theme");
-            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            const theme = savedTheme || (prefersDark ? "dark" : "light");
-            document.documentElement.dataset.theme = theme;
-        })();
-    </script>
     <style>
         :root {
-            --bg: #efe7da;
-            --panel: rgba(255, 252, 247, 0.92);
-            --ink: #1f2933;
-            --muted: #66788a;
-            --accent: #b2552e;
-            --accent-dark: #8a3f20;
-            --accent-soft: #f3d5c9;
-            --border: #ddc7b1;
-            --ok: #2e8b57;
-            --warn: #c05621;
-            --info: #1d4ed8;
-            --deep: #14304b;
-            --shadow: 0 20px 50px rgba(42, 31, 22, 0.12);
-            --surface: #ffffff;
-            --chip-bg: #111111;
-            --chip-ink: #ffffff;
-            --input-bg: #ffffff;
-            --topbar-grad: linear-gradient(135deg, var(--deep), #20537c);
-            --message-bg: #fff3dc;
-            --message-border: #f1d29b;
-            --message-ink: #8a5a00;
-        }
-
-        :root[data-theme="dark"] {
             --bg: #111827;
             --panel: rgba(17, 24, 39, 0.92);
             --ink: #e5e7eb;
@@ -69,11 +37,10 @@
             margin: 0;
             font-family: Georgia, "Times New Roman", serif;
             background:
-                radial-gradient(circle at top left, rgba(178, 85, 46, 0.18), transparent 25%),
-                radial-gradient(circle at right 10%, rgba(20, 48, 75, 0.12), transparent 20%),
-                linear-gradient(180deg, #f8f1e7 0%, var(--bg) 100%);
+                radial-gradient(circle at top left, rgba(249, 115, 22, 0.18), transparent 25%),
+                radial-gradient(circle at right 10%, rgba(96, 165, 250, 0.12), transparent 20%),
+                linear-gradient(180deg, #020617 0%, var(--bg) 100%);
             color: var(--ink);
-            transition: background 0.25s ease, color 0.25s ease;
         }
 
         a {
@@ -81,13 +48,13 @@
         }
 
         .page {
-            width: min(1180px, calc(100% - 1.5rem));
+            width: min(1600px, calc(100% - 1rem));
             margin: 0 auto;
             padding: 1.4rem 0 3rem;
         }
 
         .shell {
-            border: 1px solid rgba(221, 199, 177, 0.9);
+            border: 1px solid rgba(51, 65, 85, 0.95);
             border-radius: 26px;
             overflow: hidden;
             box-shadow: var(--shadow);
@@ -236,14 +203,10 @@
             filter: brightness(1.05);
         }
 
-        .theme-toggle {
-            min-width: 132px;
-        }
-
         .errorlist {
             margin: 0.35rem 0 0;
             padding-left: 1.2rem;
-            color: #b91c1c;
+            color: #fca5a5;
         }
 
         .auth-card {
@@ -292,13 +255,15 @@
                     {% if request.user.is_authenticated %}
                         <a class="nav-link" href="{% url 'tickets:index' %}">Panel</a>
                         <a class="nav-link" href="{% url 'tickets:base_conocimiento' %}">Base de conocimiento</a>
+                        {% if request.user.is_superuser or request.user.perfil.rol == "sistemas" %}
+                            <a class="nav-link" href="{% url 'tickets:reporte_mensual' %}">Reporte mensual</a>
+                        {% endif %}
                         {% if request.user.is_superuser %}
                             <a class="nav-link" href="/admin/">Admin</a>
                         {% endif %}
                     {% endif %}
                 </div>
                 <div class="nav-links">
-                    <button class="link-button theme-toggle" id="theme-toggle" type="button">Tema oscuro</button>
                     {% if request.user.is_authenticated %}
                         <form method="post" action="{% url 'tickets:logout' %}">
                             {% csrf_token %}
@@ -320,28 +285,5 @@
             </section>
         </div>
     </main>
-    <script>
-        (function () {
-            const root = document.documentElement;
-            const toggle = document.getElementById("theme-toggle");
-
-            function refreshLabel() {
-                if (!toggle) return;
-                const isDark = root.dataset.theme === "dark";
-                toggle.textContent = isDark ? "Tema claro" : "Tema oscuro";
-            }
-
-            refreshLabel();
-
-            if (toggle) {
-                toggle.addEventListener("click", function () {
-                    const nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
-                    root.dataset.theme = nextTheme;
-                    localStorage.setItem("helpdesk-theme", nextTheme);
-                    refreshLabel();
-                });
-            }
-        })();
-    </script>
 </body>
 </html>
